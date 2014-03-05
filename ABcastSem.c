@@ -5,7 +5,7 @@
 #include <time.h>
 
 int thread_count;
-char* message;
+int message;
 void *Consumer(void* rank);
 void *Producer();
 sem_t ProductNum;
@@ -14,6 +14,7 @@ sem_t mutex;
 int counter;
 sem_t count_sem;
 sem_t barrier_sem;
+int r;
 int main(int argc, char* argv[]){
   long thread;
   pthread_t idp;
@@ -23,7 +24,7 @@ int main(int argc, char* argv[]){
   int i = 0;
   
   for(i = 0; i<10; i++){
-    int r = rand();
+    r = rand();
     printf("loop %d -----------\n", i);
     
     thread_count = strtol(argv[1], NULL, 10);
@@ -55,7 +56,7 @@ int main(int argc, char* argv[]){
 void *Producer(){
   printf("I AM THE PRODUCER\n");
   int i = 0;
-  message = "This a Message from the Producer";
+  message = r;
   for(i = 0; i < thread_count; i++)
     sem_post(&ProductNum);
   sem_wait(&AllConsumed);
@@ -67,7 +68,7 @@ void *Consumer(void* rank){
   sem_wait(&mutex);
   sem_wait(&ProductNum);
   sem_post(&AllConsumed);
-  printf("%ld has received the message: %s\n", my_rank, message);
+  printf("%ld has received the message: %d\n", my_rank, message);
   sem_post(&mutex);
 
 
