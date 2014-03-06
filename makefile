@@ -1,5 +1,6 @@
-FILES = ABcastSem.c
-TARGET= ABcastSem
-distsum: $(FILES)
-	 gcc -g -Wall -o $(TARGET) $(FILES) -lpthread
 
+ABcastSem: 
+	 gcc -g -Wall -o ABcastSem ABcastSem.c -lpthread
+
+ABcastCV:
+	gcc -g -Wall -o ABcastCV ABcastCV.c -lpthread
