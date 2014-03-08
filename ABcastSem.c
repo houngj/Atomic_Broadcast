@@ -11,7 +11,8 @@ void *Producer();
 sem_t ProductNum;
 sem_t AllConsumed;
 sem_t mutex;
-int counter;
+sem_t next;
+int counter = 0;
 sem_t count_sem;
 sem_t barrier_sem;
 int r;
@@ -23,67 +24,93 @@ int main(int argc, char* argv[]){
   
   int i = 0;
   
-  for(i = 0; i<10; i++){
-    r = rand();
-    printf("loop %d -----------\n", i);
-    
-    thread_count = strtol(argv[1], NULL, 10);
-    thread_handles = malloc(thread_count*sizeof(pthread_t));
-    sem_init(&ProductNum, 0, 0);
-    sem_init(&AllConsumed, 0, -(thread_count-1));
-    sem_init(&mutex, 0, 1);
-    sem_init(&count_sem, 0, 1);
-    sem_init(&barrier_sem, 0, 0);
-    for(thread = 0; thread<thread_count; thread++){
-      pthread_create(&thread_handles[thread], NULL, Consumer, (void*) thread);
-      if(thread == r%thread_count)
-	pthread_create(&idp, NULL, Producer, NULL);
-    }  
-
-    
-    
-
-    for(thread=0; thread<thread_count; thread++)
-      pthread_join(thread_handles[thread], NULL);
-    free(thread_handles);
-    
+  
+  r = rand();
+  thread_count = strtol(argv[1], NULL, 10);
+  thread_handles = malloc(thread_count*sizeof(pthread_t));
+  sem_init(&ProductNum, 0, 0);
+  sem_init(&AllConsumed, 0, 0);
+  sem_init(&mutex, 0, 1);
+  sem_init(&next, 0, 0);
+  sem_init(&count_sem, 0, 1);
+  sem_init(&barrier_sem, 0, 0);
+  for(thread = 0; thread<thread_count; thread++){
+    pthread_create(&thread_handles[thread], NULL, Consumer, (void*) thread);
+    if(thread == r%thread_count)
+      pthread_create(&idp, NULL, Producer, NULL);
   }
+  
+  
+  for(thread = 0; thread < thread_count; thread++)
+    pthread_join(thread_handles[thread], NULL);
+  //pthread_join(idp, NULL);
+  
+  
+  
+  free(thread_handles);
+  
+
   return 0;
   
 
 }
 
 void *Producer(){
-  printf("I AM THE PRODUCER\n");
-  int i = 0;
-  message = r;
-  for(i = 0; i < thread_count; i++)
-    sem_post(&ProductNum);
-  sem_wait(&AllConsumed);
+  int z;
+  for(z = 0; z < 10; z++){
+    printf("Message passing loop %d\n", z);
+    int randnum = rand();
+    message = randnum;
+    printf("I AM THE PRODUCER\n");
+    int a;
+    for(a = 0; a < thread_count; a++){
+      sem_post(&ProductNum);
+      sem_wait(&next);
+    }
+    sem_wait(&AllConsumed);
+    //for(a = 0; a < thread_count; a++){
+    //  sem_wait(&AllConsumed);
+      
+    //}
+    printf("All has been consumed\n");
+
+  }
+  
   return NULL;
 }
 
 void *Consumer(void* rank){
-  long my_rank = (long) rank;
-  sem_wait(&mutex);
-  sem_wait(&ProductNum);
-  sem_post(&AllConsumed);
-  printf("%ld has received the message: %d\n", my_rank, message);
-  sem_post(&mutex);
-
-
-  if(counter == thread_count-1){
+  int x;
+  long my_rank = (long)rank;
+  for(x = 0; x < 10; x++){
+    
+    sem_wait(&mutex);
+    
+    sem_wait(&ProductNum);
+    sem_post(&next);
+    //sem_post(&AllConsumed);
+    
+    printf("%ld has consumed %d\n", my_rank, message);
+    sem_post(&mutex);
+    
+    //sem_wait(&next);
+    sem_wait(&count_sem);
+    if(counter == (thread_count-1)){
       counter = 0;
       sem_post(&count_sem);
-      int j;
-      for(j = 0; j < thread_count-1; j++)
+      
+      int y;
+      for(y = 0; y < (thread_count-1); y++)
 	sem_post(&barrier_sem);
+      sem_post(&AllConsumed);
     } else {
+      
       counter++;
       sem_post(&count_sem);
       sem_wait(&barrier_sem);
+    }
+    
+    
   }
-  
   return NULL;
-  
 }
